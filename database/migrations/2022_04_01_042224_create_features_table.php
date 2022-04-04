@@ -16,7 +16,10 @@ return new class extends Migration
         Schema::create('features', function (Blueprint $table) {
             $table->id();
             $table->string('feature');
-            $table->string('note_id');
+            $table->integer('note_id')->unsigned();
+            $table->foreign('note_id')
+            ->references('id')->on('updates')
+            ->onDelete('cascade');
             $table->timestamps();
         });
     }
