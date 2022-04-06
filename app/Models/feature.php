@@ -14,7 +14,7 @@ class feature extends Model
     protected $table = 'features';
 
     public function updates(){
-        return $this->belongsTo(update::class, 'id');
+        return $this->belongsTo(update::class, 'note_id', 'id');
 
     }
 }

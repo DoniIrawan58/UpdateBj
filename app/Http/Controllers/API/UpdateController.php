@@ -18,27 +18,41 @@ class UpdateController extends Controller
 
     }
 
-    public function index(feature $features, Update $updates)
+    //Menampilkan data index
+    public function index()
     {
-        $questionLimit=$features->count();
-        $response=[];
-        for($i=0;$i<$questionLimit;$i++){
-        $questions['candidate_chosen_ans'] = $updates[$i];
-        $response[$i]=[
-            'question_with_choice'=>$questions[$i],
-        ];
-}
-return response($response);
 
-        // $updates = update::simplePaginate(5);
-        // $last3 = DB::table('updates')->latest('id')->first();
-        // return response()->json([
-        //     'status' => true,
-        //     'message' => "Update List",
-        //     'data' => $updates
-        // ], 200);
+        $updates = update::with('features')->simplePaginate(5);
+        $last3 = DB::table('updates')->latest('id')->first();
+        return response()->json([
+            'status' => true,
+            'message' => "Update List",
+            'data' => $updates
+        ], 200);
+
     }
-
+     // Get Recent
+    public function getrecentup(){
+        try{
+            $parent = $this->update->orderBy('id', 'desc')->firstOrFail();
+            // $pid = $this->updates->first();
+            $features = feature::where('note_id', '=', $parent->id)->get();
+            return response()->json(['List updates recent' => $parent , 'features' => $features], 300);
+        }catch (ModelNotFoundException){
+            return response()->json(['List update recent' => [], 'Error' => '404', 'Message' => 'Item not found or not created yet!'], 404 );
+        }
+    }
+     // Get update by Id
+    public function getupdate($id) {
+        try{
+            $parent = $this->updates->findOrFail($id);
+            $features = feature::where('note_id', '=', $id)->get();
+            return response()->json(['List updates by id' => $parent , 'All features by id' => $features ], 300);
+        }catch (ModelNotFoundException){
+            return response()->json(['Error' => '404', 'Message' => 'Item not found or not created yet!'], 404 );
+        }
+    }
+    //Notif untuk delete
     public function updateInfo()
     {
         return response()->json([
@@ -52,34 +66,36 @@ return response($response);
         $updates = update::latest()->simplePaginate(5);
     }
 
-    public function getFeatures()
-    {
-        $features = Feature::whereNull('note_id')
-            ->with('features')
-            ->orderby('feature')
-            ->get();
-        return view('categories', compact('categories'));
-    }
-
     public function create()
     {
         //
     }
-
+    //Store
     public function store(Request $request)
     {
-        $request->validate($request, [
-            'tittle' => 'required|string',
-            'version' => 'required|string',
-            'feature.*' => 'required|string',
-      ]);
-      $features = $request->feature;
-      $fts = [];
-      foreach ($features as $feat ){
-          array_push($fts, feature::create($feat));
-      }
-      $this->update->create($request->all());
-      return $this->index();
+        $this->validate($request, [
+            'tittle' => ['required', 'string'],
+            'version' => ['required', 'string'],
+            'features' => ['required', 'array'],
+            'features.*' => ['required', 'string']
+            ]);
+
+            $note = update::create([
+            'tittle' => $request->tittle,
+            'version' => $request->version
+            ]);
+
+            foreach ($request->features as $f) {
+            feature::create([
+            'feature' => $f,
+            'note_id' => $note->id
+            ]);
+            }
+
+            return $this->getrecentup();
+            return response()->json([
+            'update berhasil'
+            ], 200);
     }
 
     /**
@@ -88,6 +104,8 @@ return response($response);
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+
+     //Get by Id
     public function show($id)
     {
         $updates = update::find($id);
@@ -130,6 +148,7 @@ return response($response);
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+    // Delete Update
     public function destroy($id)
     {
         try {

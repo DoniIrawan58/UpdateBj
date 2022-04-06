@@ -12,8 +12,8 @@ class update extends Model
 
     protected $guarded = ['id'];
     protected $table = 'updates';
-
+      //Relasi antar table
     public function features(){
-        return $this->hasMany(feature::class, 'note_id');
+        return $this->hasMany(feature::class, 'note_id', 'id');
     }
 }
